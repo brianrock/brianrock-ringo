@@ -1,0 +1,25 @@
+html {
+  font-family: Helvetica, Arial, sans-serif;
+}
+
+#intro h1 {
+  text-align: center;
+  width: 600px;
+  margin: 0 auto;
+}
+
+#intro p, #intro #choice {
+  width: 600px;
+  margin: 20px auto;
+}
+
+#intro #choice {
+  text-align: center;
+}
+
+#intro #choice span {
+}
+
+#intro #choice h2 {
+  display: inline;
+}
