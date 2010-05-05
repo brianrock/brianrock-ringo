@@ -1,14 +1,24 @@
-table#board {
-  margin: 0 auto;
+#board {
+  float: left;
 }
 
-table#board th {
+#board table th {
   text-align: center;
 }
 
-table#board td {
-  height: 90px;
-  width: 90px;
+#board table td {
+  height: 85px;
+  width: 85px;
   text-align: center;
   vertical-align: middle;
+}
+
+#badges {
+  margin: 0 50px;
+  float: left;
+}
+
+#badges .iconlist li {
+  height: 48px;
+  padding-left: 55px;
 }

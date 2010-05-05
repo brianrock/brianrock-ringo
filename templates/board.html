@@ -9,32 +9,44 @@
     to score.
   </p>
   <br /><br />
-  <table id="board">
-    <thead>
-      <tr>
-        <th>B</th>
-        <th>I</th>
-        <th>N</th>
-        <th>G</th>
-        <th>O</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for row in board %}
-      <tr>
-        {% for square in row %}
-          <td>
-            {% if square %}
-            <a href="{{ square|search_uri }}">
-              {{ square|topic }}
-            </a>
-            {% else %}
-            Free<br />Square
-            {% endif %}
-          </td>
+  <div id="board">
+    <h3>Board</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>B</th>
+          <th>I</th>
+          <th>N</th>
+          <th>G</th>
+          <th>O</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in board %}
+        <tr>
+          {% for square in row %}
+            <td>
+              {% if square %}
+              <a href="{{ square|search_uri }}">
+                {{ square|topic }}
+              </a>
+              {% else %}
+              Free<br />Square
+              {% endif %}
+            </td>
+          {% endfor %}
+        </tr>
         {% endfor %}
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+      </tbody>
+    </table>
+  </div>
+  <div id="badges">
+    <h3>Badges</h3>
+    <ul class="iconlist">
+     <li style="background: url('/images/badges/helloworld.gif') no-repeat left top;">
+       <b>Hello World</b>
+       <br/>Fill in your first square.
+     </li>
+    </ul>
+  </div>
 {% endblock %}
