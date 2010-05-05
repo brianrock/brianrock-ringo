@@ -20,61 +20,21 @@
       </tr>
     </thead>
     <tbody>
+      {% for row in board %}
       <tr>
-        <td>
-          <a href="http://mail.google.com/mail/?shva=1#buzz/search/Buzz" target="_blank">
-            Buzz
-          </a>
-        </td>
-        <td>
-          <a href="http://mail.google.com/mail/?shva=1#buzz/search/PubSubHubbub" target="_blank">
-            PubSubHubbub
-          </a>
-        </td>
-        <td>
-          <a href="http://mail.google.com/mail/?shva=1#buzz/search/Android" target="_blank">
-            Android
-          </a>
-        </td>
-        <td>
-          <a href="http://mail.google.com/mail/?shva=1#buzz/search/ChromeOS" target="_blank">
-            ChromeOS
-          </a>
-        </td>
-        <td>
-          <a href="http://mail.google.com/mail/?shva=1#buzz/search/Apps+Marketplace" target="_blank">
-            Apps Marketplace
-          </a>
-        </td>
+        {% for square in row %}
+          <td>
+            {% if square %}
+            <a href="{{ square|search_uri }}">
+              {{ square|topic }}
+            </a>
+            {% else %}
+            Free<br />Square
+            {% endif %}
+          </td>
+        {% endfor %}
       </tr>
-      <tr>
-        <td>Etc</td>
-        <td>Etc</td>
-        <td>Etc</td>
-        <td>Etc</td>
-        <td>Etc</td>
-      </tr>
-      <tr>
-        <td>Etc</td>
-        <td>Etc</td>
-        <td>Etc</td>
-        <td>Etc</td>
-        <td>Etc</td>
-      </tr>
-      <tr>
-        <td>Etc</td>
-        <td>Etc</td>
-        <td>Etc</td>
-        <td>Etc</td>
-        <td>Etc</td>
-      </tr>
-      <tr>
-        <td>Etc</td>
-        <td>Etc</td>
-        <td>Etc</td>
-        <td>Etc</td>
-        <td>Etc</td>
-      </tr>
+      {% endfor %}
     </tbody>
   </table>
 {% endblock %}

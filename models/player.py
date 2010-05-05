@@ -53,11 +53,11 @@ class Player(db.Model):
     query.ancestor(self)
     results = query.fetch(limit=24)
     board = [[None for _ in xrange(5)] for _ in xrange(5)]
-    if len(results) != 24:
-      raise ValueError(
-        'Bogus number of squares: %d (should be 24)' % len(results)
-      )
     if results:
+      if len(results) != 24:
+        raise ValueError(
+          'Bogus number of squares: %d (should be 24)' % len(results)
+        )
       # Board already exists for this player
       while results:
         square = results.pop()
@@ -81,7 +81,7 @@ class Player(db.Model):
         raise ValueError('Not enough topics: %d (should be 24)' % len(topics))
       for x in xrange(5):
         for y in xrange(5):
-          if x != 2 and y != 2:
+          if x != 2 or y != 2:
             square = models.board.Square(
               parent=self,
               key_name=('%d:%d' % (x, y)),

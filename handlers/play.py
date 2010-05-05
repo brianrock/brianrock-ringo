@@ -1,10 +1,17 @@
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp import template
 
+import django.template
+
 import os.path
 
 import web.helper
 import models.tokens
+import models.board
+
+# Ensure the filters are registered and available
+if not django.template.libraries.get('models.board', None):
+  django.template.add_to_builtins('models.board')
 
 class PlayHandler(webapp.RequestHandler):
   def get(self):
@@ -14,7 +21,12 @@ class PlayHandler(webapp.RequestHandler):
         cookies.get('access_token')
       )
       if db_access_token:
-        template_values = {}
+        player = db_access_token.player
+        board = player.board
+        template_values = {
+          'player': player,
+          'board': board
+        }
         path = os.path.join(
           os.path.dirname(__file__), '..', 'templates', 'board.html'
         )
