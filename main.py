@@ -20,12 +20,15 @@ from google.appengine.ext import webapp
 from google.appengine.ext.webapp import util
 
 import handlers.intro
+import handlers.oauth
 import handlers.play
 import handlers.leaderboard
 
 def main():
   application = webapp.WSGIApplication([
     ('/', handlers.intro.IntroHandler),
+    ('/oauth/init/', handlers.oauth.OAuthInitHandler),
+    ('/oauth/callback/', handlers.oauth.OAuthCallbackHandler),
     ('/play/', handlers.play.PlayHandler),
     ('/leaderboard/', handlers.leaderboard.LeaderboardHandler)
   ], debug=True)
