@@ -27,8 +27,8 @@
           {% for square in row %}
             <td>
               {% if square %}
-              <a href="{{ square|search_uri }}">
-                {{ square|topic }}
+              <a href="{{ square.search_uri }}">
+                {{ square.topic }}
               </a>
               {% else %}
               Free<br />Square
