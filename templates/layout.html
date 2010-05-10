@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>I/O Buzz Bingo</title>
+    <link rel="stylesheet" type="text/css" href="/css/screen.css" />
+    <script type="text/javascript"
+      src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.0/jquery.js">
+    </script>
+    {% block header %}
+    {% endblock %}
+  </head>
+  <body>
+    <div class="g-doc-1024">
+      <h1 id="header">Buzz Bingo</h1>
+      <div class="section"></div>
+      {% block content %}
+      <div class="error">
+        No content for layout.
+      </div>
+      {% endblock %}
+    </div>
+  </body>
+</html>

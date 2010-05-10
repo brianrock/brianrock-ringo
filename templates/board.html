@@ -1,0 +1,40 @@
+{% extends "layout.html" %}
+{% block header %}
+{% endblock %}
+{% block content %}
+  <p class="note">
+    Welcome to Buzz Bingo.  This is your game board.  Participate in a
+    conversation and @-mention
+    <a href="http://www.google.com/profiles/iobuzzbingo">iobuzzbingo@gmail.com</a>
+    to score.
+  </p>
+  <br /><br />
+  <table id="board">
+    <thead>
+      <tr>
+        <th>B</th>
+        <th>I</th>
+        <th>N</th>
+        <th>G</th>
+        <th>O</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in board %}
+      <tr>
+        {% for square in row %}
+          <td>
+            {% if square %}
+            <a href="{{ square|search_uri }}">
+              {{ square|topic }}
+            </a>
+            {% else %}
+            Free<br />Square
+            {% endif %}
+          </td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}
