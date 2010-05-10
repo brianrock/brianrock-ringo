@@ -89,6 +89,8 @@ class JSONParseError(Exception):
 def prune_json(json):
   # Follow Postel's law
   if isinstance(json, dict):
+    if json.get('entry'):
+      json = json['entry']
     if json.get('data'):
       json = json['data']
     if json.get('items'):
@@ -388,7 +390,7 @@ class Client:
 
   # People APIs
 
-  def user(self, user_id='@me'):
+  def person(self, user_id='@me'):
     if isinstance(user_id, Person):
       # You'd think we could just return directly here, but sometimes a
       # Person object is incomplete, in which case this operation would
