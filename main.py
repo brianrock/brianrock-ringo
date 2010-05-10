@@ -14,6 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), 'third_party'))
+
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp import util
 

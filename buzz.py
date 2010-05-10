@@ -27,10 +27,10 @@ sys.path.append('third_party')
 import oauth
 
 try:
-  import simplejson
-except (ImportError):
   # This is where simplejson lives on App Engine
   from django.utils import simplejson
+except (ImportError):
+  import simplejson
 
 API_PREFIX = "https://www.googleapis.com/buzz/v1"
 READONLY_SCOPE = 'https://www.googleapis.com/auth/buzz.readonly'

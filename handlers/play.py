@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Needed to avoid ambiguity in imports
+from __future__ import absolute_import
+
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp import template
 

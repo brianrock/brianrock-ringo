@@ -41,8 +41,9 @@ class PollHandler(webapp.RequestHandler):
     if not hasattr(self, '_client') or not self._client:
       access_token = oauth.OAuthToken(OAUTH_TOKEN_KEY, OAUTH_TOKEN_SECRET)
       self._client = buzz.Client()
-      self._client.oauth_consumer_key = OAUTH_CONSUMER_KEY
-      self._client.oauth_consumer_secret = OAUTH_CONSUMER_SECRET
+      self._client.build_oauth_consumer(
+        OAUTH_CONSUMER_KEY, OAUTH_CONSUMER_SECRET
+      )
       self._client.oauth_access_token = access_token
       self._client.oauth_scopes.append(buzz.FULL_ACCESS_SCOPE)
     return self._client
@@ -58,7 +59,10 @@ class PollHandler(webapp.RequestHandler):
     self.response.out.write(template.render(path, template_values))
     
   def post(self):
-    posts = self.client.posts('@consumption')
+    # Due to a bug, we can't use mentions and the consumption feed
+    # posts = self.client.posts('@consumption')
+    # Using the #buzzbingo hashtag instead
+    posts = self.client.search(query="buzzbingo")
     message = 'Retrieved %d posts.' % len(posts)
     template_values = {
       'http_get': False,
