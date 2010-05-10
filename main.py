@@ -20,13 +20,14 @@ from google.appengine.ext.webapp import util
 import handlers.intro
 import handlers.oauth
 import handlers.play
-import handlers.leaderboard
+import handlers.poll
 
 def main():
   application = webapp.WSGIApplication([
     ('/', handlers.intro.IntroHandler),
     ('/oauth/init/', handlers.oauth.OAuthInitHandler),
     ('/oauth/callback/', handlers.oauth.OAuthCallbackHandler),
+    ('/worker/poll/', handlers.poll.PollHandler),
     ('/play/', handlers.play.PlayHandler)
   ], debug=True)
   util.run_wsgi_app(application)

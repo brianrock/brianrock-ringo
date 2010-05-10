@@ -35,8 +35,9 @@ class OAuthInitHandler(webapp.RequestHandler):
   def client(self):
     if not hasattr(self, '_client') or not self._client:
       self._client = buzz.Client()
-      self._client.oauth_consumer_key = OAUTH_CONSUMER_KEY
-      self._client.oauth_consumer_secret = OAUTH_CONSUMER_SECRET
+      self._client.build_oauth_consumer(
+        OAUTH_CONSUMER_KEY, OAUTH_CONSUMER_SECRET
+      )
       self._client.oauth_scopes.append(buzz.FULL_ACCESS_SCOPE)
     return self._client
 
@@ -93,8 +94,9 @@ class OAuthCallbackHandler(webapp.RequestHandler):
     if not hasattr(self, '_client') or not self._client:
       logging.info('building client...')
       self._client = buzz.Client()
-      self._client.oauth_consumer_key = OAUTH_CONSUMER_KEY
-      self._client.oauth_consumer_secret = OAUTH_CONSUMER_SECRET
+      self._client.build_oauth_consumer(
+        OAUTH_CONSUMER_KEY, OAUTH_CONSUMER_SECRET
+      )
       self._client.oauth_scopes.append(buzz.FULL_ACCESS_SCOPE)
     return self._client
 
