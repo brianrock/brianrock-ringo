@@ -1,0 +1,14 @@
+table#board {
+  margin: 0 auto;
+}
+
+table#board th {
+  text-align: center;
+}
+
+table#board td {
+  height: 90px;
+  width: 90px;
+  text-align: center;
+  vertical-align: middle;
+}
