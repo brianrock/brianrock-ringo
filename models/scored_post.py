@@ -12,14 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os.path
-from google.appengine.ext import webapp
-from google.appengine.ext.webapp import template
+# Needed to avoid ambiguity in imports
+from __future__ import absolute_import
 
-class IntroHandler(webapp.RequestHandler):
-  def get(self):
-    template_values = {}
-    template_path = os.path.join(
-      os.path.dirname(__file__), '..', 'templates', 'intro.html'
-    )
-    self.response.out.write(template.render(template_path, template_values))
+from google.appengine.ext import db
+
+import oauth
+
+import models.player
+
+class ScoredPost(db.Model):
+  # The player is the scored post's parent.
+  post_id = db.StringProperty(required=True)
+  topic = db.StringProperty(required=True)
+
+  @property
+  def player(self):
+    return self.parent
+
+  def __repr__(self):
+    return "<ScoredPost[%s, %s]>" % (self.post_id, self.parent_key().name())
