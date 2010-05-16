@@ -1,3 +1,20 @@
+# Copyright 2010 Google Inc.
+# 
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+#      http://www.apache.org/licenses/LICENSE-2.0
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Needed to avoid ambiguity in imports
+from __future__ import absolute_import
+
 import yaml
 
 from google.appengine.ext import db
@@ -20,10 +37,10 @@ class OAuthInitHandler(webapp.RequestHandler):
   @property
   def client(self):
     if not hasattr(self, '_client') or not self._client:
-      logging.info('building client...')
       self._client = buzz.Client()
-      self._client.oauth_consumer_key = OAUTH_CONSUMER_KEY
-      self._client.oauth_consumer_secret = OAUTH_CONSUMER_SECRET
+      self._client.build_oauth_consumer(
+        OAUTH_CONSUMER_KEY, OAUTH_CONSUMER_SECRET
+      )
       self._client.oauth_scopes.append(buzz.FULL_ACCESS_SCOPE)
     return self._client
 
@@ -56,7 +73,7 @@ class OAuthInitHandler(webapp.RequestHandler):
     else:
       # TODO: Change this to production URL, don't hardcode it
       oauth_request_token = self.client.fetch_oauth_request_token(
-        'http://localhost:8085/oauth/callback/'
+        'http://buzz-bingo.appspot.com/oauth/callback/'
       )
       save_token = True
     # Build the authorization URL and then redirect to it
@@ -80,8 +97,9 @@ class OAuthCallbackHandler(webapp.RequestHandler):
     if not hasattr(self, '_client') or not self._client:
       logging.info('building client...')
       self._client = buzz.Client()
-      self._client.oauth_consumer_key = OAUTH_CONSUMER_KEY
-      self._client.oauth_consumer_secret = OAUTH_CONSUMER_SECRET
+      self._client.build_oauth_consumer(
+        OAUTH_CONSUMER_KEY, OAUTH_CONSUMER_SECRET
+      )
       self._client.oauth_scopes.append(buzz.FULL_ACCESS_SCOPE)
     return self._client
 
