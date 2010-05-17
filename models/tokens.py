@@ -17,9 +17,19 @@ from __future__ import absolute_import
 
 from google.appengine.ext import db
 
+import yaml
+
+import buzz
 import oauth
 
 import models.player
+
+OAUTH_CONFIG = yaml.load(open('oauth.yaml').read())
+
+OAUTH_CONSUMER_KEY = OAUTH_CONFIG['oauth_consumer_key']
+OAUTH_CONSUMER_SECRET = OAUTH_CONFIG['oauth_consumer_secret']
+OAUTH_TOKEN_KEY = OAUTH_CONFIG['oauth_token_key']
+OAUTH_TOKEN_SECRET = OAUTH_CONFIG['oauth_token_secret']
 
 class RequestToken(db.Model):
   # The player is the request token's parent.
@@ -37,6 +47,10 @@ class RequestToken(db.Model):
       return None
 
   @property
+  def player(self):
+    return self.parent
+
+  @property
   def token(self):
     return oauth.OAuthToken(self.oauth_key, self.oauth_secret)
 
@@ -47,6 +61,7 @@ class AccessToken(db.Model):
   # The player is the access token's parent.
   oauth_key = db.StringProperty()
   oauth_secret = db.StringProperty()
+  player_id = db.StringProperty()
 
   @staticmethod
   def from_key(oauth_key):
@@ -59,22 +74,31 @@ class AccessToken(db.Model):
       return None
 
   @property
-  def token(self):
-    return oauth.OAuthToken(self.oauth_key, self.oauth_secret)
-
-  @property
   def player(self):
-    query = db.Query(models.player.Player)
-    query.ancestor(self)
-    result = query.fetch(limit=1)
-    if result:
-      # There should only ever be one player with this token as its ancestor
-      return result[0]
+    player = None
+    if self.player_id:
+      player = models.player.Player.get_by_key_name(self.player_id)
+    if player:
+      return player
     else:
       # There is no player for this token, so create one!
-      player = models.player.Player(parent=self)
+      client = buzz.Client()
+      client.build_oauth_consumer(OAUTH_CONSUMER_KEY, OAUTH_CONSUMER_SECRET)
+      client.oauth_access_token = self.token
+      client.oauth_scopes.append(buzz.FULL_ACCESS_SCOPE)
+      person = client.person().data
+      player = models.player.Player(
+        key_name=person.id,
+        name=person.name
+      )
       player.put()
+      self.player_id = person.id
+      self.put()
       return player
+      
+  @property
+  def token(self):
+    return oauth.OAuthToken(self.oauth_key, self.oauth_secret)
 
   def __repr__(self):
     return "<Token[%s, %s]>" % (self.oauth_key, self.oauth_secret)

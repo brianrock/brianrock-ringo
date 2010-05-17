@@ -1,0 +1,4 @@
+cron:
+- description: Polling job
+  url: /worker/poll/
+  schedule: every 1 minutes

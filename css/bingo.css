@@ -56,6 +56,10 @@
   background-color: #ffffff;
 }
 
+#board table td.scored {
+  background-color: #00a950;
+}
+
 #badges {
   float: left;
 }
@@ -68,8 +72,12 @@
 }
 
 .boardBadges {
-  margin-top: 65px;
   width: 280px;
+}
+
+#badges.boardBadges .iconlist li {
+  padding-top: 10px;
+  height: 38px;
 }
 
 .clearFloats {

@@ -10,8 +10,8 @@ $(document).ready(function() {
 {% block content %}
   <p class="note">
     Welcome to Buzz Bingo.  This is your game board.  Participate in a
-    conversation and @-mention
-    <a href="http://www.google.com/profiles/iobuzzbingo">iobuzzbingo@gmail.com</a>
+    conversation and mention
+    <a href="http://www.google.com/profiles/iobuzzbingo">@iobuzzbingo@gmail.com</a>
     to score.
   </p>
   <br /><br />
@@ -31,15 +31,25 @@ $(document).ready(function() {
         {% for row in board %}
         <tr>
           {% for square in row %}
-            <td>
-              {% if square %}
-              <a href="{{ square.search_uri }}">
-                {{ square.topic }}
-              </a>
+            {% if square %}
+              {% if square.is_scored %}
+                <td class="scored">
+                  <a href="{{ square.search_uri }}">
+                    {{ square.topic }}
+                  </a>
+                </td>
               {% else %}
-                <img src="http://www.google.com/images/icons/star-35.gif" width="35" height="35" alt="star" title="free square" />
+                <td>
+                  <a href="{{ square.post_uri }}">
+                    {{ square.topic }}
+                  </a>
+                </td>
               {% endif %}
-            </td>
+            {% else %}
+              <td class="scored">
+                <img src="http://www.google.com/images/icons/star-35.gif" width="35" height="35" alt="star" title="free square" />
+              </td>
+            {% endif %}
           {% endfor %}
         </tr>
         {% endfor %}
