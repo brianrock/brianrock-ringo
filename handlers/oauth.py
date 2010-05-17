@@ -73,7 +73,7 @@ class OAuthInitHandler(webapp.RequestHandler):
     else:
       # TODO: Change this to production URL, don't hardcode it
       oauth_request_token = self.client.fetch_oauth_request_token(
-        'http://localhost:8085/oauth/callback/'
+        'http://buzz-bingo.appspot.com/oauth/callback/'
       )
       save_token = True
     # Build the authorization URL and then redirect to it

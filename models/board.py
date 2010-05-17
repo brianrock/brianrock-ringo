@@ -18,17 +18,55 @@ import models.player
 
 import urllib
 
-import django.template
-
-register = django.template.Library()
+# TODO: Needs more topics
+TOPIC_LIST = [
+  "App Engine",
+  "Buzz",
+  "PubSubHubbub",
+  "Salmon",
+  "Android",
+  "Enterprise Marketplace",
+  "ChromeOS",
+  "Chrome Extensions",
+  "HTML5",
+  "Chrome Frame",
+  "Cloud Computing",
+  "GWT",
+  "Maps",
+  "Social Web",
+  "KML",
+  "PowerMeter",
+  "YouTube",
+  "Google Chart Tools",
+  "Google Analytics",
+  "Activity Streams",
+  "MediaRSS",
+  "XFN",
+  "OAuth",
+  "OpenID",
+  "Native Client",
+  "iGoogle",
+  "Closure",
+  "OpenSocial",
+  "Wave",
+  "Page Speed",
+  "Speed Tracer",
+  "SEO"
+]
 
 class Square(db.Model):
   # The player is the square's parent.
   topic = db.StringProperty()
+  post_id = db.StringProperty(required=False)
+  post_uri = db.StringProperty(required=False)
 
   @property
   def player(self):
     return self.parent()
+
+  @property
+  def is_scored(self):
+    return not not self.post_id
 
   @property
   def search_uri(self):
