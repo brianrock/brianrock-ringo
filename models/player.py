@@ -44,12 +44,18 @@ class Player(db.Model):
 
   @property
   def oauth_access_token(self):
-    return self.parent()
-  
+    query = db.Query(models.tokens.AccessToken)
+    query.filter('player_id =', self.key().name())
+    results = query.fetch(limit=1)
+    if results:
+      return results[0]
+    else:
+      return None
+
   def square_for_topic(self, topic):
     for x in xrange(5):
       for y in xrange(5):
-        if self.board[x][y].topic.lower().strip() == topic.lower().strip():
+        if self.board[x][y] and self.board[x][y].topic.lower().strip() == topic.lower().strip():
           return self.board[x][y]
     return None
   
@@ -80,7 +86,8 @@ class Player(db.Model):
       self._topics = []
       for x in xrange(5):
         for y in xrange(5):
-          self._topics.append(self.board[x][y].topic)
+          if self.board[x][y]:
+            self._topics.append(self.board[x][y].topic)
     return self._topics
 
   @property
