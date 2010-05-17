@@ -126,6 +126,7 @@ class Player(db.Model):
         for x in xrange(5):
           for y in xrange(5):
             if x != 2 or y != 2:
+              # We leave the "Free Space" as None
               square = models.board.Square(
                 parent=self,
                 key_name=('%d:%d' % (x, y)),
