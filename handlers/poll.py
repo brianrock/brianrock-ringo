@@ -132,7 +132,7 @@ class PollHandler(webapp.RequestHandler):
           intersection = [
             topic for topic in player.topics if topic in topics_found
           ]
-          if intersection and not player.has_player_scored(post_id):
+          if intersection and not player.has_post_scored(post_id):
             scoring_players.add(player)
             scoring_topic = random.choice(intersection)
             player.score_post(post_id, post_uri, scoring_topic)

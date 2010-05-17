@@ -61,6 +61,7 @@ class AccessToken(db.Model):
   # The player is the access token's parent.
   oauth_key = db.StringProperty()
   oauth_secret = db.StringProperty()
+  player_id = db.StringProperty()
 
   @staticmethod
   def from_key(oauth_key):
@@ -74,20 +75,11 @@ class AccessToken(db.Model):
 
   @property
   def player(self):
-    return self.parent
-
-  @property
-  def token(self):
-    return oauth.OAuthToken(self.oauth_key, self.oauth_secret)
-
-  @property
-  def player(self):
-    query = db.Query(models.player.Player)
-    query.ancestor(self)
-    result = query.fetch(limit=1)
-    if result:
-      # There should only ever be one player with this token as its ancestor
-      return result[0]
+    player = None
+    if self.player_id:
+      player = models.player.Player.get_by_key_name(self.player_id)
+    if player:
+      return player
     else:
       # There is no player for this token, so create one!
       client = buzz.Client()
@@ -97,11 +89,16 @@ class AccessToken(db.Model):
       person = client.person().data
       player = models.player.Player(
         key_name=person.id,
-        name=person.name,
-        parent=self
+        name=person.name
       )
       player.put()
+      self.player_id = person.id
+      self.put()
       return player
+      
+  @property
+  def token(self):
+    return oauth.OAuthToken(self.oauth_key, self.oauth_secret)
 
   def __repr__(self):
     return "<Token[%s, %s]>" % (self.oauth_key, self.oauth_secret)
