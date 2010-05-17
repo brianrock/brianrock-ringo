@@ -1,3 +1,17 @@
+# Copyright 2010 Google Inc.
+# 
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+#      http://www.apache.org/licenses/LICENSE-2.0
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from google.appengine.ext import db
 
 import models.player
@@ -22,19 +36,3 @@ class Square(db.Model):
       "http://mail.google.com/mail/?shva=1#buzz/search/%s" %
         urllib.quote_plus(self.topic)
     )
-
-@register.filter
-def search_uri(square):
-  """Returns the search_uri for a square."""
-  if isinstance(square, Square):
-    return square.search_uri
-  else:
-    raise TypeError('Must be a models.board.Square')
-
-@register.filter
-def topic(square):
-  """Returns the topic for a square."""
-  if isinstance(square, Square):
-    return square.topic
-  else:
-    raise TypeError('Must be a models.board.Square')

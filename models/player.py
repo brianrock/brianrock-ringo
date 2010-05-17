@@ -1,3 +1,17 @@
+# Copyright 2010 Google Inc.
+# 
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+#      http://www.apache.org/licenses/LICENSE-2.0
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from google.appengine.ext import db
 
 import models.tokens
@@ -5,6 +19,9 @@ import models.board
 
 import copy
 import random
+import yaml
+
+import buzz
 
 # TODO: Needs more topics
 TOPIC_LIST = [
@@ -42,7 +59,22 @@ TOPIC_LIST = [
   "SEO"
 ]
 
+OAUTH_CONFIG = yaml.load(open('oauth.yaml').read())
+
+OAUTH_CONSUMER_KEY = OAUTH_CONFIG['oauth_consumer_key']
+OAUTH_CONSUMER_SECRET = OAUTH_CONFIG['oauth_consumer_secret']
+OAUTH_TOKEN_KEY = OAUTH_CONFIG['oauth_token_key']
+OAUTH_TOKEN_SECRET = OAUTH_CONFIG['oauth_token_secret']
+
 class Player(db.Model):
+  name = db.StringProperty()
+
+  # def __init__(self):
+  #   client = buzz.Client()
+  #   client.oauth_consumer_key = OAUTH_CONSUMER_KEY
+  #   client.oauth_consumer_secret = OAUTH_CONSUMER_SECRET
+  #   client.oauth_scopes.append(buzz.FULL_ACCESS_SCOPE)
+  
   @property
   def oauth_access_token(self):
     return self.parent()

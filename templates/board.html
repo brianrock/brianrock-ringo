@@ -1,5 +1,11 @@
 {% extends "layout.html" %}
 {% block header %}
+<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
+<script type="text/javascript">
+$(document).ready(function() {
+  //$("#board table td a:nth-child(3n+1)").css("background-color", "#ff0000");
+});
+</script>
 {% endblock %}
 {% block content %}
   <p class="note">
@@ -9,32 +15,62 @@
     to score.
   </p>
   <br /><br />
-  <table id="board">
-    <thead>
-      <tr>
-        <th>B</th>
-        <th>I</th>
-        <th>N</th>
-        <th>G</th>
-        <th>O</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for row in board %}
-      <tr>
-        {% for square in row %}
-          <td>
-            {% if square %}
-            <a href="{{ square|search_uri }}">
-              {{ square|topic }}
-            </a>
-            {% else %}
-            Free<br />Square
-            {% endif %}
-          </td>
+  <div id="board">
+    <h3>Board</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>B</th>
+          <th>I</th>
+          <th>N</th>
+          <th>G</th>
+          <th>O</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in board %}
+        <tr>
+          {% for square in row %}
+            <td>
+              {% if square %}
+              <a href="{{ square.search_uri }}">
+                {{ square.topic }}
+              </a>
+              {% else %}
+                <img src="http://www.google.com/images/icons/star-35.gif" width="35" height="35" alt="star" title="free square" />
+              {% endif %}
+            </td>
+          {% endfor %}
+        </tr>
         {% endfor %}
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+      </tbody>
+    </table>
+  </div>
+  <div id="badges" class="boardBadges">
+        <ul class="iconlist">
+          <li style="background: url('http://www.google.com/images/icons/check-48.gif') no-repeat left top;">
+            <strong>Hello World!</strong> - Start playing Buzz Bingo.
+          </li>
+          <li style="background: url('http://www.google.com/images/icons/milestone-48.png') no-repeat left top;">
+            <strong>Geo</strong> - Join a conversation that contains geo data.
+          </li>
+          <li style="background: url('http://www.google.com/images/icons/share-48.gif') no-repeat left top;">
+            <strong>Share and share alike</strong> - Join a conversation that links somewhere.
+          </li>
+          <li style="background: url('http://www.google.com/images/icons/racing-48.gif') no-repeat left top;">
+            <strong>Bingo</strong> - Complete one Bingo.
+          </li>
+          <li style="background: url('http://www.google.com/images/icons/mobile-48.gif') no-repeat left top;">
+            <strong>Mobile</strong> - Join a conversation from your mobile.
+          </li>
+          <li style="background: url('http://www.google.com/images/icons/scholar-48.gif') no-repeat left top;">
+            <strong>Scholar</strong> - Contribute over 200 words to a conversation in one comment.
+          </li>
+          <li style="background: url('http://www.google.com/images/icons/pegman_award-48.gif') no-repeat left top;">
+            <strong>Daily leader</strong> - Complete the most Bingos in one day.
+          </li>
+
+        </ul>
+    </div>
+
 {% endblock %}
