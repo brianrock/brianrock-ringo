@@ -16,6 +16,7 @@
   font-weight: bold;
 }
 
+
 #board table tr td a {
   color: rgb(0, 102, 204);
 }
@@ -56,8 +57,15 @@
   background-color: #ffffff;
 }
 
-#board table td.scored {
-  background-color: #00a950;
+#board table tr td.marked {
+  background-image: url("/images/greycheck-70.png");
+  background-position: center center;
+  background-repeat: no-repeat;
+}
+
+#board table tr td.marked a {
+  color: #666666 !important;
+  text-decoration: line-through;
 }
 
 #badges {
