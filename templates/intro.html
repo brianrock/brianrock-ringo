@@ -1,0 +1,59 @@
+{% extends "layout.html" %}
+{% block header %}
+{% endblock %}
+{% block content %}
+  <div class="g-section g-tpl-140">
+    <div class="g-unit g-first">
+      <ul id="nav">
+        <li><a href="/oauth/init/">Sign in</a></li>
+        <li><a href="/leaderboard/">Leaderboard</a></li>
+      </ul>
+    </div>  
+    <div id="gc-pagecontent" class="g-unit" style="position: relative;">
+      <h1>Buzz Bingo: Join conversations to win!</h1>
+      <p>
+        <ol>
+          <li><a href="/oauth/init/">Sign into the game</a>.</li>
+          <li><strong>Join Buzz conversations</strong> and mention the game by including "<strong>@iobuzzbingo@gmail.com</strong>" in your Buzz comment.</li>
+          <li><strong>One keyword</strong> per conversation <strong>will be marked on the board</strong>.</li>
+          <li>Get <strong>5 keywords in a line</strong> marked off, and <strong>Bingo!</strong>  You win.</li>
+          <li><a href="/leaderboard/">Check the leaderboard</a>.</li>
+          <li>Keep playing until you're on it!</li>
+        </ol>
+      </p>
+      <br />
+      <h2>Gameplay badges:</h2>
+      <div id="badges" class="homeBadges">
+        <ul class="iconlist">
+          <li style="background: url('http://buzz-bingo.appspot.com/images/badges/helloworld.gif') no-repeat left top;">
+            <strong>Hello World!</strong> - Start playing Buzz Bingo.
+          </li>
+          <li style="background: url('http://www.google.com/images/icons/milestone-48.png') no-repeat left top;">
+            <strong>Geo</strong> - Join a conversation that contains geo data.
+          </li>
+          <li style="background: url('http://www.google.com/images/icons/share-48.gif') no-repeat left top;">
+            <strong>Share and share alike</strong> - Join a conversation that links somewhere.
+          </li>
+          <li style="background: url('http://www.google.com/images/icons/racing-48.gif') no-repeat left top;">
+            <strong>Bingo</strong> - Complete one Bingo.
+          </li>
+          <li style="background: url('http://www.google.com/images/icons/mobile-48.gif') no-repeat left top;">
+            <strong>Mobile</strong> - Start a conversation from your mobile.
+          </li>
+          <li style="background: url('http://www.google.com/images/icons/scholar-48.gif') no-repeat left top;">
+            <strong>Scholar</strong> - Contribute over 200 words to a conversation in one comment.
+          </li>
+          <li style="background: url('http://www.google.com/images/icons/pegman_award-48.gif') no-repeat left top;">
+            <strong>Daily leader</strong> - Complete the most Bingos in one day.
+          </li>
+          
+        </ul>
+      </div>
+      <div class="clearFloats"></div>
+      <br /><br />
+      <p>
+        Questions?  Ask <a href="http://buzz.timothyjordan.com" target="_blank">Timothy</a> or <a href="http://buzz.sporkmonger.com" target="_blank">Bob</a>
+      </p>
+    </div>
+  </div>
+{% endblock %}
