@@ -36,4 +36,46 @@ class Badge(db.Model):
     elif self.badge_type == 'taco':
       return 'http://buzz-bingo.appspot.com/images/badges/taco.gif'
     else:
-      raise ValueError('Unknown ')
+      raise ValueError('Unknown badge type.')
+
+  @property
+  def badge_title(self):
+    if self.badge_type == 'hello-world':
+      return 'Hello, World!'
+    elif self.badge_type == 'geo':
+      return 'Geo'
+    elif self.badge_type == 'share':
+      return 'Share And Share Alike'
+    elif self.badge_type == 'bingo':
+      return 'Bingo!'
+    elif self.badge_type == 'mobile':
+      return 'Mobile'
+    elif self.badge_type == 'scholar':
+      return 'Scholar'
+    elif self.badge_type == 'leader':
+      return 'Daily Leader'
+    elif self.badge_type == 'taco':
+      return 'A Delicious Taco'
+    else:
+      raise ValueError('Unknown badge type.')
+
+  @property
+  def badge_description(self):
+    if self.badge_type == 'hello-world':
+      return 'Start playing Buzz Bingo.'
+    elif self.badge_type == 'geo':
+      return 'Join a conversation that contains geo data.'
+    elif self.badge_type == 'share':
+      return 'Join a conversation that links somewhere.'
+    elif self.badge_type == 'bingo':
+      return 'Complete one Bingo.'
+    elif self.badge_type == 'mobile':
+      return 'Join a conversation from your mobile.'
+    elif self.badge_type == 'scholar':
+      return 'Contribute over 200 words to a conversation.'
+    elif self.badge_type == 'leader':
+      return 'Complete the most Bingos in one day.'
+    elif self.badge_type == 'taco':
+      return 'You know what this needs?  A blueberry pancake.'
+    else:
+      raise ValueError('Unknown badge type.')

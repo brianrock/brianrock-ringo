@@ -373,9 +373,6 @@ class Client:
 
   def followers(self, user_id='@me'):
     if isinstance(user_id, Person):
-      # You'd think we could just return directly here, but sometimes a
-      # Person object is incomplete, in which case this operation would
-      # 'upgrade' to the full Person object.
       user_id = user_id.id
     if self.oauth_access_token:
       api_endpoint = API_PREFIX + ("/people/%s/@groups/@followers" % user_id)
@@ -386,14 +383,35 @@ class Client:
 
   def following(self, user_id='@me'):
     if isinstance(user_id, Person):
-      # You'd think we could just return directly here, but sometimes a
-      # Person object is incomplete, in which case this operation would
-      # 'upgrade' to the full Person object.
       user_id = user_id.id
     if self.oauth_access_token:
       api_endpoint = API_PREFIX + ("/people/%s/@groups/@following" % user_id)
       api_endpoint += "?alt=json"
       return Result(self, 'GET', api_endpoint, result_type=Person)
+    else:
+      raise ValueError("This client doesn't have an authenticated user.")
+
+  def follow(self, user_id):
+    if isinstance(user_id, Person):
+      user_id = user_id.id
+    if self.oauth_access_token:
+      api_endpoint = API_PREFIX + (
+        "/people/@me/@groups/@following/%s" % user_id
+      )
+      api_endpoint += "?alt=json"
+      return Result(self, 'PUT', api_endpoint, result_type=None).data
+    else:
+      raise ValueError("This client doesn't have an authenticated user.")
+
+  def unfollow(self, user_id):
+    if isinstance(user_id, Person):
+      user_id = user_id.id
+    if self.oauth_access_token:
+      api_endpoint = API_PREFIX + (
+        "/people/@me/@groups/@following/%s" % user_id
+      )
+      api_endpoint += "?alt=json"
+      return Result(self, 'DELETE', api_endpoint, result_type=None).data
     else:
       raise ValueError("This client doesn't have an authenticated user.")
 
@@ -462,7 +480,7 @@ class Client:
     api_endpoint += "?alt=json"
     return Result(
       self, 'PUT', api_endpoint, result_type=None, singular=True
-    )
+    ).data
 
   def unlike_post(self, post_id, actor_id='0'):
     """
@@ -477,7 +495,7 @@ class Client:
     api_endpoint += "?alt=json"
     return Result(
       self, 'DELETE', api_endpoint, result_type=None, singular=True
-    )
+    ).data
 
   # Mutes
 
@@ -498,7 +516,7 @@ class Client:
     api_endpoint += "?alt=json"
     return Result(
       self, 'PUT', api_endpoint, result_type=None, singular=True
-    )
+    ).data
 
   def unmute_post(self, post_id, actor_id='0'):
     """
@@ -513,7 +531,7 @@ class Client:
     api_endpoint += "?alt=json"
     return Result(
       self, 'DELETE', api_endpoint, result_type=None, singular=True
-    )
+    ).data
 
   # # People
   #
@@ -544,46 +562,57 @@ class Client:
     return response.read()
 
 class Post:
-  def __init__(self, json, client=None):
+  def __init__(self, json=None, client=None,
+      content=None, uri=None, verb=None, actor=None,
+      attachments=None):
     self.client = client
     self.json = json
     self._likers = None
     self._comments = None
-
-    # Follow Postel's law
-    try:
-      json = _prune_json_envelope(json)
-      self.id = json['id']
-      if isinstance(json.get('content'), dict):
-        self.content = json['content']['value']
-      elif json.get('content'):
-        self.content = json['content']
-      elif json.get('object') and json['object'].get('content'):
-        self.content = json['object']['content']
-      if isinstance(json['title'], dict):
-        self.title = json['title']['value']
-      else:
-        self.title = json['title']
-      self.link = json['links']['alternate'][0]
-      self.uri = self.link['href']
-      if isinstance(json.get('verb'), list):
-        self.verb = json['verb'][0]
-      elif json.get('verb'):
-        self.verb = json['verb']
-      elif isinstance(json.get('type'), list):
-        self.verb = json['type'][0]
-      elif json.get('type'):
-        self.verb = json['type']
-      if json.get('author'):
-        self.actor = Person(json['author'], client=self.client)
-      elif json.get('actor'):
-        self.actor = Person(json['actor'], client=self.client)
-      # TODO: handle timestamps
-    except KeyError, e:
-      raise JSONParseError(
-        json=json,
-        exception=e
-      )
+    
+    if self.json:
+      # Parse the incoming JSON
+      # Follow Postel's law
+      try:
+        json = _prune_json_envelope(json)
+        self.id = json['id']
+        if isinstance(json.get('content'), dict):
+          self.content = json['content']['value']
+        elif json.get('content'):
+          self.content = json['content']
+        elif json.get('object') and json['object'].get('content'):
+          self.content = json['object']['content']
+        if isinstance(json['title'], dict):
+          self.title = json['title']['value']
+        else:
+          self.title = json['title']
+        self.link = json['links']['alternate'][0]
+        self.uri = self.link['href']
+        if isinstance(json.get('verb'), list):
+          self.verb = json['verb'][0]
+        elif json.get('verb'):
+          self.verb = json['verb']
+        elif isinstance(json.get('type'), list):
+          self.verb = json['type'][0]
+        elif json.get('type'):
+          self.verb = json['type']
+        if json.get('author'):
+          self.actor = Person(json['author'], client=self.client)
+        elif json.get('actor'):
+          self.actor = Person(json['actor'], client=self.client)
+        # TODO: handle timestamps
+      except KeyError, e:
+        raise JSONParseError(
+          json=json,
+          exception=e
+        )
+    else:
+      # Construct the post piece-wise.
+      self.content = content
+      self.uri = uri
+      self.verb = verb
+      self.actor = actor
+      self.attachments = attachments
 
   def __repr__(self):
     return "<Post[%s]>" % self.id
@@ -662,6 +691,12 @@ class Comment:
       client = self.client
     return client.post(post_id=self._post_id, actor_id=self.actor.id)
 
+class Attachment:
+  def __init__(self, json, client=None):
+    self.client = client
+    self.json = json
+    # TODO
+
 class Person:
   def __init__(self, json, client=None):
     self.client = client
@@ -693,6 +728,18 @@ class Person:
 
   def __repr__(self):
     return "<Person[%s, %s]>" % (self.name, self.id)
+
+  def follow(self, client=None):
+    """Syntactic sugar for `client.follow(person)`."""
+    if not client:
+      client = self.client
+    return client.follow(user_id=self.id)
+
+  def unfollow(self, client=None):
+    """Syntactic sugar for `client.unfollow(person)`."""
+    if not client:
+      client = self.client
+    return client.unfollow(user_id=self.id)
 
   def posts(self, client=None):
     """Syntactic sugar for `client.posts(person)`."""

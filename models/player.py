@@ -1,11 +1,11 @@
 # Copyright 2010 Google Inc.
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #      http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -58,7 +58,7 @@ class Player(db.Model):
         if self.board[x][y] and self.board[x][y].topic.lower().strip() == topic.lower().strip():
           return self.board[x][y]
     return None
-  
+
   def has_post_scored(self, post_id):
     if isinstance(post_id, buzz.Post):
       post_id = post_id.id
@@ -79,6 +79,24 @@ class Player(db.Model):
     square.post_id = post_id
     square.post_uri = post_uri
     square.put()
+    # Check for badge conditions being met
+    score_count = 0
+    horizontal_counts = [0, 0, 0, 0, 0] # Indexed by y-axis
+    vertical_counts   = [0, 0, 0, 0, 0] # Indexed by x-axis
+    for x in xrange(5):
+      for y in xrange(5):
+        if self.board[x][y] and self.board[x][y].post_id:
+          score_count + 1
+          horizontal_counts[y] += 1
+          vertical_counts[x] += 1
+
+  @property
+  def badges(self):
+    if not self._badges:
+      query = db.Query(models.badge.Badge)
+      query.ancestor(self)
+      self._badges = query.fetch(limit=1000) # Hey, it could happen.
+    return self._badges
 
   @property
   def topics(self):
