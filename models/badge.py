@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from google.appengine.ext import db
+
 class Badge(db.Model):
   # The player is the badge's parent.
   badge_type = db.StringProperty()
@@ -68,7 +70,7 @@ class Badge(db.Model):
     elif self.badge_type == 'share':
       return 'Join a conversation that links somewhere.'
     elif self.badge_type == 'bingo':
-      return 'Complete one Bingo.'
+      return 'Complete a Bingo!'
     elif self.badge_type == 'mobile':
       return 'Join a conversation from your mobile.'
     elif self.badge_type == 'scholar':

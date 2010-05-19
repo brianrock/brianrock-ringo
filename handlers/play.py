@@ -17,8 +17,10 @@ from __future__ import absolute_import
 
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp import template
+from google.appengine.api.labs import taskqueue
 
 import os.path
+import logging
 
 import web.helper
 import models.tokens
@@ -33,6 +35,7 @@ class PlayHandler(webapp.RequestHandler):
       )
       if db_access_token:
         player = db_access_token.player
+        logging.info('\'%s\' is playing the game!' % player.name)
         board = player.board
         template_values = {
           'player': player,
@@ -41,9 +44,21 @@ class PlayHandler(webapp.RequestHandler):
         path = os.path.join(
           os.path.dirname(__file__), '..', 'templates', 'board.html'
         )
+        try:
+          result_task = taskqueue.Task(url='/worker/poll/')
+          result_task.add()
+          logging.info('Polling task enqueued...')
+        except Exception, e:
+          # Eat all errors here, because we really just don't care what
+          # happened.  We're just happy if we can poll faster than once
+          # a minute.
+          logging.error(str(e))
+          result_task = None
+        
         self.response.out.write(template.render(path, template_values))
-        # self.response.out.write('Player: ' + str(db_access_token.player))
       else:
-        self.response.out.write('Player doesn\'t exist')
+        web.helper.clear_oauth_token_cookies(self)
+        self.redirect('/oauth/init/')
     else:
+      web.helper.clear_oauth_token_cookies(self)
       self.redirect('/oauth/init/')

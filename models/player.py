@@ -17,10 +17,12 @@ from google.appengine.ext import db
 import models.tokens
 import models.board
 import models.scored_post
+import models.badge
 
 import copy
 import random
 import yaml
+import logging
 
 import buzz
 
@@ -33,11 +35,15 @@ OAUTH_TOKEN_SECRET = OAUTH_CONFIG['oauth_token_secret']
 
 class Player(db.Model):
   name = db.StringProperty()
+  profile_name = db.StringProperty(required=False)
+  bingo_count = db.IntegerProperty(default=0)
 
   def __init__(self, parent=None, key_name=None, **kwds):
     db.Model.__init__(self, parent, key_name, **kwds)
+    self._client = None
     self._board = None
     self._topics = None
+    self._badges = None
 
   def __repr__(self):
     return "<Player[%s, %s]>" % (self.name, self.key().name())
@@ -51,6 +57,17 @@ class Player(db.Model):
       return results[0]
     else:
       return None
+  
+  @property
+  def client(self):
+    if not self._client:
+      self._client = buzz.Client()
+      self._client.build_oauth_consumer(OAUTH_CONSUMER_KEY, OAUTH_CONSUMER_SECRET)
+      # We don't want to use the player's token, since we're going to post
+      # new entries with it.
+      self._client.build_oauth_access_token(OAUTH_TOKEN_KEY, OAUTH_TOKEN_SECRET)
+      self._client.oauth_scopes.append(buzz.FULL_ACCESS_SCOPE)
+    return self._client
 
   def square_for_topic(self, topic):
     for x in xrange(5):
@@ -68,6 +85,40 @@ class Player(db.Model):
     results = query.fetch(limit=1)
     return not not results
 
+  def award_badge(self, badge_type):
+    badge = models.badge.Badge(
+      parent=self,
+      badge_type=badge_type
+    )
+    badge.put()
+    logging.info(badge.badge_title)
+    if self.profile_name:
+      post_content = \
+        '@%s@gmail.com has just earned the \'%s\' badge on Buzz Bingo!' % (
+          self.profile_name, badge.badge_title
+        )
+    else:
+      post_content = '%s has just earned the \'%s\' badge on Buzz Bingo!' % (
+        self.name, badge.badge_title
+      )
+    badge_attachment = buzz.Attachment(
+      type='photo', enclosure=badge.badge_icon
+    )
+    link_attachment = buzz.Attachment(
+      type='article',
+      title='Buzz Bingo',
+      uri='http://buzz-bingo.appspot.com/'
+    )
+    badge_post = buzz.Post(
+      content=post_content,
+      attachments=[
+        badge_attachment,
+        link_attachment
+      ]
+    )
+    self.client.create_post(badge_post)
+    self._badges = None
+
   def score_post(self, post_id, post_uri, topic):
     scored_post = models.scored_post.ScoredPost(
       parent=self,
@@ -80,16 +131,46 @@ class Player(db.Model):
     square.post_uri = post_uri
     square.put()
     # Check for badge conditions being met
+    post = self.client.post(actor_id=self.key().name(), post_id=post_id).data
     score_count = 0
-    horizontal_counts = [0, 0, 0, 0, 0] # Indexed by y-axis
-    vertical_counts   = [0, 0, 0, 0, 0] # Indexed by x-axis
+    horizontal_counts = [0, 0, 1, 0, 0] # Indexed by y-axis
+    vertical_counts   = [0, 0, 1, 0, 0] # Indexed by x-axis
     for x in xrange(5):
       for y in xrange(5):
         if self.board[x][y] and self.board[x][y].post_id:
-          score_count + 1
+          score_count += 1
           horizontal_counts[y] += 1
           vertical_counts[x] += 1
+    if post.attachments:
+      for attachment in post.attachments:
+        if attachment.type == 'article':
+          self.award_badge('share')
+          break
+    if post.geocode and post.actor.id != self.key().name():
+      self.award_badge('geo')
+    elif post.geocode and post.actor.id == self.key().name():
+      self.award_badge('mobile')
+    if score_count >= 1 and not self.has_badge('hello-world'):
+      self.award_badge('hello-world')
+    if (5 in horizontal_counts) or (5 in vertical_counts):
+      self.award_badge('bingo')
+      if not hasattr(self, 'bingo_count') or not self.bingo_count:
+        self.bingo_count = 0
+      self.bingo_count += 1
+      self.put()
+      # Clear the board and reset.
+      self._board = None
+      query = db.Query(models.board.Square)
+      query.ancestor(self)
+      results = query.fetch(limit=1000)
+      db.delete(results)
 
+  def has_badge(self, badge_type):
+    for badge in self.badges:
+      if badge.badge_type == badge_type:
+        return True
+    return False
+      
   @property
   def badges(self):
     if not self._badges:
