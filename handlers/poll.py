@@ -25,6 +25,7 @@ import os.path
 import yaml
 import time
 import random
+import re
 
 import oauth
 import buzz
@@ -103,12 +104,12 @@ class PollHandler(webapp.RequestHandler):
       post_uri = post.uri
       comments = post.comments()
       retrieved_comments = []
-      post_content = post.content.lower().replace(
-        '<br />', ' '
-      ).replace('\r', ' ').replace('\n', ' ').replace(
-        'buzz bingo', 'buzzbingo'
-      )
-      if post_content.find('buzzbingo') != -1:
+      post_content = post.content.lower()
+      post_content = re.sub('<br />|\\r|\\n', ' ', post_content)
+      # Avoid false positive
+      post_content = re.sub('buzz ?bingo', 'BUZZBINGO', post_content)
+      logging.critical(post_content)
+      if post_content.find('BUZZBINGO') != -1:
         players.add(post.actor.id)
       for topic in models.board.TOPIC_LIST:
         if post_content.find(topic.lower()) != -1:
@@ -116,12 +117,11 @@ class PollHandler(webapp.RequestHandler):
       for comment in comments:
         # Need to avoid making unnecessary HTTP requests
         retrieved_comments.append(comment)
-        comment_content = comment.content.lower().replace(
-          '<br />', ' '
-        ).replace('\r', ' ').replace('\n', ' ').replace(
-          'buzz bingo', 'buzzbingo'
-        )
-        if comment_content.find('buzzbingo') != -1:
+        comment_content = comment.content.lower()
+        comment_content = re.sub('<br />|\\r|\\n', ' ', comment_content)
+        # Avoid false positive
+        comment_content = re.sub('buzz ?bingo', 'BUZZBINGO', comment_content)
+        if comment_content.find('BUZZBINGO') != -1:
           players.add(comment.actor.id)
         for topic in models.board.TOPIC_LIST:
           if comment_content.find(topic.lower()) != -1:
@@ -132,6 +132,10 @@ class PollHandler(webapp.RequestHandler):
           intersection = [
             topic for topic in player.topics if topic in topics_found
           ]
+          if intersection:
+            logging.info("Intersection!")
+          if player.has_post_scored(post_id):
+            logging.info("Player already scored this!")
           if intersection and not player.has_post_scored(post_id):
             scoring_players.add(player)
             scoring_topic = random.choice(intersection)

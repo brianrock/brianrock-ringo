@@ -102,6 +102,16 @@ def _prune_json_envelope(json):
     raise TypeError('Expected dict: \'%s\'' % str(json))
   return json
 
+def _parse_geocode(geocode):
+  # Follow Postel's law
+  if ' ' in geocode:
+    lat, lon = geocode.split(' ')
+  elif ',' in geocode:
+    lat, lon = geocode.split(',')
+  else:
+    raise ValueError('Bogus geocode.')
+  return (lat, lon)
+
 class Client:
   def __init__(self):
     # Make sure we're always getting the right HTTP connection, even if
@@ -145,6 +155,9 @@ class Client:
       else:
         self._http_connection = httplib.HTTPConnection(self._host, self._port)
     return self._http_connection
+
+  def use_anonymous_oauth_consumer(self):
+    self.oauth_consumer = oauth.OAuthConsumer('anonymous', 'anonymous')
 
   def build_oauth_consumer(self, key, secret):
     self.oauth_consumer = oauth.OAuthConsumer(key, secret)
@@ -321,13 +334,21 @@ class Client:
     http_headers.update({
       'Content-Length': len(http_body)
     })
+    if http_body:
+      http_headers.update({
+        'Content-Type': 'application/json'
+      })
     if self.oauth_access_token:
       # Build OAuth request and add OAuth header if we've got an access token
       oauth_request = self.build_oauth_request(http_method, http_uri)
       http_headers.update(oauth_request.to_header())
     try:
       try:
-        http_connection.request(http_method, http_uri, headers=http_headers)
+        http_connection.request(
+          http_method, http_uri,
+          headers=http_headers,
+          body=http_body
+        )
         response = http_connection.getresponse()
       except (httplib.BadStatusLine, httplib.CannotSendRequest):
         if http_connection and http_connection == self.http_connection:
@@ -337,7 +358,11 @@ class Client:
           self._http_connection = None
           http_connection = self.http_connection
           # Retry once
-          http_connection.request(http_method, http_uri, headers=http_headers)
+          http_connection.request(
+            http_method, http_uri,
+            headers=http_headers,
+            body=http_body
+          )
           response = http_connection.getresponse()
     except Exception, e:
       if hasattr(e, '_json'):
@@ -442,6 +467,31 @@ class Client:
     api_endpoint += "?alt=json"
     return Result(self, 'GET', api_endpoint, result_type=Post, singular=True)
 
+  def create_post(self, post):
+    api_endpoint = API_PREFIX + "/activities/@me/@self"
+    api_endpoint += "?alt=json"
+    json_string = simplejson.dumps({'data': post._json_output})
+    return Result(
+      self, 'POST', api_endpoint, http_body=json_string, result_type=None
+    ).data
+
+  def update_post(self, post):
+    if not post.id:
+      raise ValueError('Post must have a valid id to update.')
+    api_endpoint = API_PREFIX + "/activities/@me/@self/" + post.id
+    api_endpoint += "?alt=json"
+    json_string = simplejson.dumps({'data': post._json_output})
+    return Result(
+      self, 'PUT', api_endpoint, http_body=json_string, result_type=None
+    ).data
+
+  def delete_post(self, post):
+    if not post.id:
+      raise ValueError('Post must have a valid id to delete.')
+    api_endpoint = API_PREFIX + "/activities/@me/@self/" + post.id
+    api_endpoint += "?alt=json"
+    return Result(self, 'DELETE', api_endpoint, result_type=None).data
+
   def comments(self, post_id, actor_id='0'):
     if isinstance(actor_id, Person):
       actor_id = actor_id.id
@@ -451,6 +501,42 @@ class Client:
       "/@self/" + post_id + "/@comments"
     api_endpoint += "?alt=json"
     return Result(self, 'GET', api_endpoint, result_type=Comment)
+
+  def create_comment(self, comment):
+    api_endpoint = API_PREFIX + ("/activities/%s/@self/%s/@comments" % (
+      comment.post(client=self).actor.id,
+      comment.post(client=self).id
+    ))
+    api_endpoint += "?alt=json"
+    json_string = simplejson.dumps({'data': comment._json_output})
+    return Result(
+      self, 'POST', api_endpoint, http_body=json_string, result_type=None
+    ).data
+
+  def update_comment(self, comment):
+    if not comment.id:
+      raise ValueError('Comment must have a valid id to update.')
+    api_endpoint = API_PREFIX + ("/activities/%s/@self/%s/@comments/%s" % (
+      comment.actor.id,
+      comment.post(client=self).id,
+      comment.id
+    ))
+    api_endpoint += "?alt=json"
+    json_string = simplejson.dumps({'data': comment._json_output})
+    return Result(
+      self, 'PUT', api_endpoint, http_body=json_string, result_type=None
+    ).data
+
+  def delete_comment(self, comment):
+    if not comment.id:
+      raise ValueError('Comment must have a valid id to update.')
+    api_endpoint = API_PREFIX + ("/activities/%s/@self/%s/@comments/%s" % (
+      comment.actor.id,
+      comment.post(client=self).id,
+      comment.id
+    ))
+    api_endpoint += "?alt=json"
+    return Result(self, 'DELETE', api_endpoint, result_type=None).data
 
   def likers(self, post_id, actor_id='0'):
     if isinstance(actor_id, Person):
@@ -563,10 +649,22 @@ class Client:
 
 class Post:
   def __init__(self, json=None, client=None,
-      content=None, uri=None, verb=None, actor=None,
+      content=None, uri=None, verb=None, actor=None, geocode=None,
       attachments=None):
     self.client = client
     self.json = json
+    self.id = None
+    self.object = None
+    self.type=None
+    
+    # Construct the post piece-wise.
+    self.content = content
+    self.uri = uri
+    self.verb = verb
+    self.actor = actor
+    self.geocode = geocode
+    self.attachments = attachments
+    
     self._likers = None
     self._comments = None
     
@@ -586,36 +684,71 @@ class Post:
           self.title = json['title']['value']
         else:
           self.title = json['title']
+        if json.get('object'):
+          self.object = json['object']
         self.link = json['links']['alternate'][0]
         self.uri = self.link['href']
         if isinstance(json.get('verb'), list):
           self.verb = json['verb'][0]
         elif json.get('verb'):
           self.verb = json['verb']
-        elif isinstance(json.get('type'), list):
-          self.verb = json['type'][0]
+        if isinstance(json.get('type'), list):
+          self.type = json['type'][0]
         elif json.get('type'):
-          self.verb = json['type']
+          self.type = json['type']
+        elif self.object and self.object.get('type'):
+          self.type = self.object['type']
         if json.get('author'):
           self.actor = Person(json['author'], client=self.client)
         elif json.get('actor'):
           self.actor = Person(json['actor'], client=self.client)
+        if self.object and self.object.get('attachments'):
+          self.attachments = [
+            Attachment(attachment_json, client=self.client)
+            for attachment_json
+            in self.object['attachments']
+          ]
+        else:
+          self.attachments = []
+        if json.get('geocode'):
+          self.geocode = _parse_geocode(json['geocode'])
         # TODO: handle timestamps
       except KeyError, e:
         raise JSONParseError(
           json=json,
           exception=e
         )
-    else:
-      # Construct the post piece-wise.
-      self.content = content
-      self.uri = uri
-      self.verb = verb
-      self.actor = actor
-      self.attachments = attachments
 
   def __repr__(self):
     return "<Post[%s]>" % self.id
+    
+  @property
+  def _json_output(self):
+    output = {
+      'object': {}
+    }
+    if self.id:
+      output['id'] = self.id
+    if self.uri:
+      output['links'] = {
+        u'alternate': [{u'href': self.uri, u'type': u'text/html'}]
+      }
+      output['object']['links'] = {
+        u'alternate': [{u'href': self.uri, u'type': u'text/html'}]
+      }
+    if self.content:
+      output['object']['content'] = self.content
+    if self.type:
+      output['object']['type'] = self.type
+    else:
+      output['object']['type'] = 'note'
+    if self.verb:
+      output['verb'] = self.verb
+    if self.attachments:
+      output['object']['attachments'] = [
+        attachment._json_output for attachment in self.attachments
+      ]
+    return output
 
   def comments(self, client=None):
     """Syntactic sugar for `client.comments(post)`."""
@@ -654,53 +787,132 @@ class Post:
     return client.unmute_post(post_id=self.id, actor_id=self.actor.id)
 
 class Comment:
-  def __init__(self, json, client=None):
+  def __init__(self, json=None, client=None,
+      post=None, post_id=None, content=None):
     self.client = client
     self.json = json
-    self._post = None
-    self._post_id = None
-    # Follow Postel's law
-    try:
-      json = _prune_json_envelope(json)
-      self.id = json['id']
-      if isinstance(json.get('content'), dict):
-        self.content = json['content']['value']
-      elif json.get('content'):
-        self.content = json['content']
-      elif json.get('object') and json['object'].get('content'):
-        self.content = json['object']['content']
-      if json.get('author'):
-        self.actor = Person(json['author'], client=self.client)
-      elif json.get('actor'):
-        self.actor = Person(json['actor'], client=self.client)
-      if json.get('links') and json['links'].get('inReplyTo'):
-        self._post_id = json['links']['inReplyTo'][0]['ref']
-      # TODO: handle timestamps
-    except KeyError, e:
-      raise JSONParseError(
-        json=json,
-        exception=e
-      )
+    self.id = None
+    self.content = content
+    self._post = post
+    self._post_id = post_id
+    if json:
+      # Follow Postel's law
+      try:
+        json = _prune_json_envelope(json)
+        self.id = json['id']
+        if isinstance(json.get('content'), dict):
+          self.content = json['content']['value']
+        elif json.get('content'):
+          self.content = json['content']
+        elif json.get('object') and json['object'].get('content'):
+          self.content = json['object']['content']
+        if json.get('author'):
+          self.actor = Person(json['author'], client=self.client)
+        elif json.get('actor'):
+          self.actor = Person(json['actor'], client=self.client)
+        if json.get('links') and json['links'].get('inReplyTo'):
+          self._post_id = json['links']['inReplyTo'][0]['ref']
+        # TODO: handle timestamps
+      except KeyError, e:
+        raise JSONParseError(
+          json=json,
+          exception=e
+        )
 
   def __repr__(self):
     return "<Comment[%s]>" % self.id
 
+  @property
+  def _json_output(self):
+    output = {}
+    if self.id:
+      output['id'] = self.id
+    if self.content:
+      output['content'] = self.content
+    return output
+
   def post(self, client=None):
     """Syntactic sugar for `client.post(post)`."""
-    if not client:
-      client = self.client
-    return client.post(post_id=self._post_id, actor_id=self.actor.id)
+    if not self._post:
+      if not self._post_id:
+        raise ValueError('Could not determine comment\'s parent post.')
+      if not client:
+        client = self.client
+      self._post = \
+        client.post(post_id=self._post_id, actor_id=self.actor.id).data
+    return self._post
 
 class Attachment:
-  def __init__(self, json, client=None):
+  def __init__(self, json=None, client=None,
+      type=None, title=None, content=None, uri=None,
+      preview=None, enclosure=None):
     self.client = client
     self.json = json
-    # TODO
+    self.type = type
+    self.title = title
+    self.content = content
+    self.uri = uri
+    self.link = None
+    self.preview = preview
+    self.enclosure = enclosure
+    if json:
+      try:
+        json = _prune_json_envelope(json)
+        if isinstance(json.get('content'), dict):
+          self.content = json['content']['value']
+        elif json.get('content'):
+          self.content = json['content']
+        if json.get('title'):
+          if isinstance(json['title'], dict):
+            self.title = json['title']['value']
+          else:
+            self.title = json['title']
+        else:
+          self.title = None
+        links = json.get('links')
+        if links and links.get('alternate'):
+          self.link = json['links']['alternate'][0]
+          self.uri = self.link['href']
+        if links and links.get('preview'):
+          self.preview = json['links']['preview'][0]
+        self.type = json['type']
+      except KeyError, e:
+        raise JSONParseError(
+          json=json,
+          exception=e
+        )
+
+  def __repr__(self):
+    return "<Attachment[%s]>" % self.uri
+
+  @property
+  def _json_output(self):
+    output = {}
+    if self.type:
+      output['type'] = self.type
+    if self.title:
+      output['title'] = self.title
+    if self.content:
+      output['content'] = self.content
+    if self.uri:
+      output['links'] = {
+        u'alternate': [{u'href': self.uri, u'type': u'text/html'}]
+      }
+    if self.preview:
+      output['links'] = {
+        u'preview': [{u'href': self.preview}]
+      }
+    if self.enclosure:
+      output['links'] = {
+        u'enclosure': [{u'href': self.enclosure}]
+      }
+    return output
 
 class Person:
   def __init__(self, json, client=None):
     self.client = client
     self.json = json
+    self.profile_name = None
     # Follow Postel's law
     try:
       json = _prune_json_envelope(json)
@@ -720,6 +932,8 @@ class Person:
         self.uris = json.get('urls')
       if json.get('photos'):
         self.photos = json.get('photos')
+      if not re.search('^\\d+$', re.search('/([^/]*?)$', self.uri).group(1)):
+        self.profile_name = re.search('/([^/]*?)$', self.uri).group(1)
     except KeyError, e:
       raise JSONParseError(
         json=json,
@@ -729,6 +943,19 @@ class Person:
   def __repr__(self):
     return "<Person[%s, %s]>" % (self.name, self.id)
 
+  @property
+  def _json_output(self):
+    output = {}
+    if self.id:
+      output['id'] = self.id
+    if self.name:
+      output['name'] = self.name
+    if self.uri:
+      output['profileUrl'] = self.uri
+    if self.photo:
+      output['thumbnailUrl'] = self.photo
+    return output
+                
   def follow(self, client=None):
     """Syntactic sugar for `client.follow(person)`."""
     if not client:

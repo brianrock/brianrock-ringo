@@ -89,7 +89,8 @@ class AccessToken(db.Model):
       person = client.person().data
       player = models.player.Player(
         key_name=person.id,
-        name=person.name
+        name=person.name,
+        profile_name=person.profile_name
       )
       player.put()
       self.player_id = person.id

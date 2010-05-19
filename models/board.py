@@ -65,7 +65,7 @@ class Square(db.Model):
     return self.parent()
 
   @property
-  def is_scored(self):
+  def is_marked(self):
     return not not self.post_id
 
   @property
