@@ -52,6 +52,7 @@ class Player(db.Model):
     self._board = None
     self._topics = None
     self._badges = None
+    self._badges_awarded = set([])
 
   def __repr__(self):
     return "<Player[%s, %s]>" % (self.name, self.key().name())
@@ -102,37 +103,39 @@ class Player(db.Model):
     logging.info(badge.badge_title)
     # Reset the badge list
     self._badges = None
-    try:
-      if self.profile_name:
-        post_content = \
-          '@%s@gmail.com has just earned the \'%s\' badge on Buzz Bingo!' % (
-            self.profile_name, badge.badge_title
+    if not badge_type in self._badges_awarded:
+      self._badges_awarded.add(badge_type)
+      try:
+        if self.profile_name:
+          post_content = \
+            '@%s@gmail.com has just earned the \'%s\' badge on Buzz Bingo!' % (
+              self.profile_name, badge.badge_title
+            )
+        else:
+          post_content = '%s has just earned the \'%s\' badge on Buzz Bingo!' % (
+            self.name, badge.badge_title
           )
-      else:
-        post_content = '%s has just earned the \'%s\' badge on Buzz Bingo!' % (
-          self.name, badge.badge_title
+        badge_attachment = buzz.Attachment(
+          type='photo', enclosure=badge.badge_icon
         )
-      badge_attachment = buzz.Attachment(
-        type='photo', enclosure=badge.badge_icon
-      )
-      link_attachment = buzz.Attachment(
-        type='article',
-        title='Buzz Bingo',
-        uri='http://buzz-bingo.appspot.com/'
-      )
-      badge_post = buzz.Post(
-        content=post_content,
-        attachments=[
-          badge_attachment,
-          link_attachment
-        ],
-        geocode=VENUE_GEOCODE,
-        place_id=VENUE_PLACE_ID
-      )
-      self.client.create_post(badge_post)
-    except Exception, e:
-      logging.warning('Post was not created.')
-      logging.error(e)
+        link_attachment = buzz.Attachment(
+          type='article',
+          title='Buzz Bingo',
+          uri='http://buzz-bingo.appspot.com/'
+        )
+        badge_post = buzz.Post(
+          content=post_content,
+          attachments=[
+            badge_attachment,
+            link_attachment
+          ],
+          geocode=VENUE_GEOCODE,
+          place_id=VENUE_PLACE_ID
+        )
+        self.client.create_post(badge_post)
+      except Exception, e:
+        logging.warning('Post was not created.')
+        logging.error(e)
 
   def score_post(self, post, topic):
     self.award_content_badges(post)
