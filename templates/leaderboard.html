@@ -1,0 +1,46 @@
+{% extends "layout.html" %}
+{% block header %}
+{% endblock %}
+{% block content %}
+  <div class="g-section g-tpl-140">
+    <div class="g-unit g-first">
+      <ul id="nav">
+        <li><a href="/oauth/init/">Sign in</a></li>
+        <li><a href="/leaderboard/">Leaderboard</a></li>
+      </ul>
+    </div>  
+    <div id="gc-pagecontent" class="g-unit" style="position: relative;">
+      <h1>Buzz Bingo: Top Players</h1>
+      <div id="leaderboard">
+        <table>
+          <thead>
+            <tr>
+              <th>Player</th>
+              <th>Bingo Count</th>
+              <th>Badges</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for player in top_players %}
+              <tr>
+                <td>
+                  <a href="{{ player.profile_uri }}">
+                    {{ player.name|escape }}
+                  </a>
+                </td>
+                <td>
+                  {{ player.bingo_count }}
+                </td>
+                <td>
+                  {{ player.badge_list }}
+                </td>
+              </tr>
+            {% endfor %}            
+          </tbody>
+        </table>
+      </div>
+      <div class="clearFloats"></div>
+      <br /><br />
+    </div>
+  </div>
+{% endblock %}
