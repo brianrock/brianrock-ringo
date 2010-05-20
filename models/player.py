@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from google.appengine.ext import db
+from google.appengine.api.labs import taskqueue
 
 import models.tokens
 import models.board
@@ -33,8 +34,15 @@ OAUTH_CONSUMER_SECRET = OAUTH_CONFIG['oauth_consumer_secret']
 OAUTH_TOKEN_KEY = OAUTH_CONFIG['oauth_token_key']
 OAUTH_TOKEN_SECRET = OAUTH_CONFIG['oauth_token_secret']
 
+VENUE_GEOCODE=('37.782058', '-122.404761')
+VENUE_PLACE_ID='CmReAAAA0GxRE-AcdpB-0Xn65jNPOcnQj-qWyoWRBoarUGzprN9mn83spvD5zpgaeorfh242yEI8Zg7GLI2ccJcskAix1hQbH7otb7gLLB9QSvENSCuEqzB0Uz891Y5Y4MERKaatEhDddmbyctP_irYfMYE04owqGhT2pZLL4QnwbuUWzq8sKi8a45FDwg'
+
+def _word_count(text):
+  return len(text.strip().split(' '))
+
 class Player(db.Model):
   name = db.StringProperty()
+  profile_uri = db.StringProperty(required=True)
   profile_name = db.StringProperty(required=False)
   bingo_count = db.IntegerProperty(default=0)
 
@@ -57,7 +65,7 @@ class Player(db.Model):
       return results[0]
     else:
       return None
-  
+
   @property
   def client(self):
     if not self._client:
@@ -92,46 +100,78 @@ class Player(db.Model):
     )
     badge.put()
     logging.info(badge.badge_title)
-    if self.profile_name:
-      post_content = \
-        '@%s@gmail.com has just earned the \'%s\' badge on Buzz Bingo!' % (
-          self.profile_name, badge.badge_title
-        )
-    else:
-      post_content = '%s has just earned the \'%s\' badge on Buzz Bingo!' % (
-        self.name, badge.badge_title
-      )
-    badge_attachment = buzz.Attachment(
-      type='photo', enclosure=badge.badge_icon
-    )
-    link_attachment = buzz.Attachment(
-      type='article',
-      title='Buzz Bingo',
-      uri='http://buzz-bingo.appspot.com/'
-    )
-    badge_post = buzz.Post(
-      content=post_content,
-      attachments=[
-        badge_attachment,
-        link_attachment
-      ]
-    )
-    self.client.create_post(badge_post)
+    # Reset the badge list
     self._badges = None
+    try:
+      if self.profile_name:
+        post_content = \
+          '@%s@gmail.com has just earned the \'%s\' badge on Buzz Bingo!' % (
+            self.profile_name, badge.badge_title
+          )
+      else:
+        post_content = '%s has just earned the \'%s\' badge on Buzz Bingo!' % (
+          self.name, badge.badge_title
+        )
+      badge_attachment = buzz.Attachment(
+        type='photo', enclosure=badge.badge_icon
+      )
+      link_attachment = buzz.Attachment(
+        type='article',
+        title='Buzz Bingo',
+        uri='http://buzz-bingo.appspot.com/'
+      )
+      badge_post = buzz.Post(
+        content=post_content,
+        attachments=[
+          badge_attachment,
+          link_attachment
+        ],
+        geocode=VENUE_GEOCODE,
+        place_id=VENUE_PLACE_ID
+      )
+      self.client.create_post(badge_post)
+    except Exception, e:
+      logging.warning('Post was not created.')
+      logging.error(e)
 
-  def score_post(self, post_id, post_uri, topic):
+  def score_post(self, post, topic):
+    self.award_content_badges(post)
+    self.update_square(post, topic)
+    self.award_score_badges()
+    if not self._board:
+      self.regenerate_board()
+
+  def verify_bingo(self):
+    self.award_score_badges()
+    if not self._board:
+      self.regenerate_board()
+
+  def award_leader_badge(self):
+    if not self.has_badge('leader'):
+      query = db.Query(Player)
+      query.order('-bingo_count')
+      results = query.fetch(limit=1)
+      if results and results[0].key().name() == self.key().name():
+        self.award_badge('leader')
+
+  def update_square(self, post, topic):
     scored_post = models.scored_post.ScoredPost(
       parent=self,
-      post_id=post_id,
+      post_id=post.id,
       topic=topic
     )
     scored_post.put()
-    square = self.square_for_topic(topic)
-    square.post_id = post_id
-    square.post_uri = post_uri
-    square.put()
-    # Check for badge conditions being met
-    post = self.client.post(actor_id=self.key().name(), post_id=post_id).data
+    if topic != 'taco':
+      square = self.square_for_topic(topic)
+      square.post_id = post.id
+      square.post_uri = post.uri
+      square.put()
+      # Update the board with the new square
+      x, y = square.key().name().split(':')
+      x, y = int(x), int(y)
+      self._board[x][y] = square
+
+  def award_score_badges(self):
     score_count = 0
     horizontal_counts = [0, 0, 1, 0, 0] # Indexed by y-axis
     vertical_counts   = [0, 0, 1, 0, 0] # Indexed by x-axis
@@ -141,15 +181,6 @@ class Player(db.Model):
           score_count += 1
           horizontal_counts[y] += 1
           vertical_counts[x] += 1
-    if post.attachments:
-      for attachment in post.attachments:
-        if attachment.type == 'article':
-          self.award_badge('share')
-          break
-    if post.geocode and post.actor.id != self.key().name():
-      self.award_badge('geo')
-    elif post.geocode and post.actor.id == self.key().name():
-      self.award_badge('mobile')
     if score_count >= 1 and not self.has_badge('hello-world'):
       self.award_badge('hello-world')
     if (5 in horizontal_counts) or (5 in vertical_counts):
@@ -160,34 +191,72 @@ class Player(db.Model):
       self.put()
       # Clear the board and reset.
       self._board = None
-      query = db.Query(models.board.Square)
-      query.ancestor(self)
-      results = query.fetch(limit=1000)
-      db.delete(results)
+
+  def award_content_badges(self, post):
+    if _word_count(post.content) > 100 and post.actor.id == self.key().name():
+      self.award_badge('scholar')
+    else:
+      for comment in post.comments():
+        logging.info(_word_count(comment.content))
+        if _word_count(comment.content) > 100 and \
+            comment.actor.id == self.key().name():
+          self.award_badge('scholar')
+          break
+    if 'taco' in post.content.lower() and post.actor.id == self.key().name():
+      self.award_badge('taco')
+    else:
+      for comment in post.comments():
+        if 'taco' in comment.content.lower() and \
+            comment.actor.id == self.key().name():
+          self.award_badge('taco')
+          break
+    if post.attachments:
+      for attachment in post.attachments:
+        if attachment.type == 'article':
+          self.award_badge('share')
+          break
+    if post.geocode and post.actor.id != self.key().name():
+      self.award_badge('geo')
+    elif post.geocode and post.actor.id == self.key().name():
+      self.award_badge('mobile')
 
   def has_badge(self, badge_type):
     for badge in self.badges:
       if badge.badge_type == badge_type:
         return True
     return False
-      
+
   @property
   def badges(self):
     if not self._badges:
       query = db.Query(models.badge.Badge)
       query.ancestor(self)
+      query.order('date_awarded')
       self._badges = query.fetch(limit=1000) # Hey, it could happen.
     return self._badges
 
   @property
+  def badge_list(self):
+    return ', '.join(["'%s'" % badge.badge_title for badge in self.badges])
+
+  @property
   def topics(self):
     if not self._topics:
-      self._topics = []
+      self._topics = ['taco']
       for x in xrange(5):
         for y in xrange(5):
           if self.board[x][y]:
             self._topics.append(self.board[x][y].topic)
     return self._topics
+
+  def regenerate_board(self):
+    # Clear the board and reset.
+    self._board = None
+    query = db.Query(models.board.Square)
+    query.ancestor(self)
+    results = query.fetch(limit=1000)
+    db.delete(results)
+    return self.board
 
   @property
   def board(self):
@@ -198,6 +267,14 @@ class Player(db.Model):
       self._board = [[None for _ in xrange(5)] for _ in xrange(5)]
       if results:
         if len(results) != 24:
+          try:
+            # We've got some kind of weird state in the data store.
+            # Rescan because it should fixed itself in a moment.
+            result_task = taskqueue.Task(url='/worker/poll/')
+            result_task.add()
+          except Exception, e:
+            # Ignore all errors.
+            result_task = None
           raise ValueError(
             'Bogus number of squares: %d (should be 24)' % len(results)
           )

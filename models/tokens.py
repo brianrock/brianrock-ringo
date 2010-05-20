@@ -90,6 +90,7 @@ class AccessToken(db.Model):
       player = models.player.Player(
         key_name=person.id,
         name=person.name,
+        profile_uri=person.uri,
         profile_name=person.profile_name
       )
       player.put()

@@ -21,10 +21,13 @@ from google.appengine.api.labs import taskqueue
 
 import os.path
 import logging
+import yaml
 
 import web.helper
 import models.tokens
 import models.board
+
+PRIORITY_PROFILES = yaml.load(open('polling.yaml').read())
 
 class PlayHandler(webapp.RequestHandler):
   def get(self):
@@ -44,16 +47,17 @@ class PlayHandler(webapp.RequestHandler):
         path = os.path.join(
           os.path.dirname(__file__), '..', 'templates', 'board.html'
         )
-        try:
-          result_task = taskqueue.Task(url='/worker/poll/')
-          result_task.add()
-          logging.info('Polling task enqueued...')
-        except Exception, e:
-          # Eat all errors here, because we really just don't care what
-          # happened.  We're just happy if we can poll faster than once
-          # a minute.
-          logging.error(str(e))
-          result_task = None
+        if player.profile_name in PRIORITY_PROFILES:
+          logging.info('Auto-polled user is playing.  Enqueuing...')
+          try:
+            result_task = taskqueue.Task(url='/worker/poll/')
+            result_task.add()
+          except Exception, e:
+            # Eat all errors here, because we really just don't care what
+            # happened.  We're just happy if we can poll faster than once
+            # a minute.
+            logging.error(str(e))
+            result_task = None
         
         self.response.out.write(template.render(path, template_values))
       else:

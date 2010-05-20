@@ -41,7 +41,7 @@ class OAuthInitHandler(webapp.RequestHandler):
       self._client.build_oauth_consumer(
         OAUTH_CONSUMER_KEY, OAUTH_CONSUMER_SECRET
       )
-      self._client.oauth_scopes.append(buzz.FULL_ACCESS_SCOPE)
+      self._client.oauth_scopes.append(buzz.READONLY_SCOPE)
     return self._client
 
   def get(self):
@@ -75,6 +75,9 @@ class OAuthInitHandler(webapp.RequestHandler):
       oauth_request_token = self.client.fetch_oauth_request_token(
         'http://buzz-bingo.appspot.com/oauth/callback/'
       )
+      # oauth_request_token = self.client.fetch_oauth_request_token(
+      #  'http://localhost:8085/oauth/callback/'
+      #)
       save_token = True
     # Build the authorization URL and then redirect to it
     authorization_url = self.client.build_oauth_authorization_url(
