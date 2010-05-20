@@ -44,7 +44,7 @@ OAUTH_TOKEN_SECRET = OAUTH_CONFIG['oauth_token_secret']
 
 PRIORITY_PROFILES = yaml.load(open('polling.yaml').read())
 
-BUZZ_BINGO_ID = '112440751658091941585'
+BUZZ_BINGO_ID = '103831860836738334913'
 
 class PollHandler(webapp.RequestHandler):
   @property
