@@ -16,9 +16,13 @@ import os.path
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp import template
 
+import models.badge
+
 class IntroHandler(webapp.RequestHandler):
   def get(self):
-    template_values = {}
+    template_values = {
+      'badge_types': models.badge.badge_types
+    }
     template_path = os.path.join(
       os.path.dirname(__file__), '..', 'templates', 'intro.html'
     )

@@ -55,7 +55,7 @@ class Badge(db.Model):
     elif self.badge_type == 'scholar':
       return 'Scholar'
     elif self.badge_type == 'leader':
-      return 'Daily Leader'
+      return 'Leader'
     elif self.badge_type == 'taco':
       return 'A Delicious Taco'
     else:
@@ -74,10 +74,22 @@ class Badge(db.Model):
     elif self.badge_type == 'mobile':
       return 'Join a conversation from your mobile.'
     elif self.badge_type == 'scholar':
-      return 'Contribute over 200 words to a conversation.'
+      return 'Contribute over 100 words to a conversation.'
     elif self.badge_type == 'leader':
-      return 'Complete the most Bingos in one day.'
+      return 'Reach the top of the leaderboard.'
     elif self.badge_type == 'taco':
       return 'You know what this needs?  A blueberry pancake.'
     else:
       raise ValueError('Unknown badge type.')
+  
+# The complete list of badge types.
+badge_types = [
+  Badge(badge_type='hello-world'),
+  Badge(badge_type='geo'),
+  Badge(badge_type='share'),
+  Badge(badge_type='bingo'),
+  Badge(badge_type='mobile'),
+  Badge(badge_type='scholar'),
+  Badge(badge_type='leader'),
+  Badge(badge_type='taco')
+]

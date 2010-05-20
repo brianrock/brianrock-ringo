@@ -91,3 +91,7 @@
 .clearFloats {
   clear: both;
 }
+
+#leaderboard {
+  margin-top: 25px;
+}

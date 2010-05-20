@@ -3,3 +3,4 @@ syntax: glob
 ._*
 .DS_Store
 oauth.yaml
+polling.yaml
