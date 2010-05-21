@@ -39,7 +39,7 @@ def parse_cookies(handler):
     cookie_list = handler.request.headers.get('Cookie').split(';')
     for cookie in cookie_list:
       if '=' in cookie:
-        k, v = cookie.strip().split('=')
+        k, v = cookie.strip().split('=', 1)
         cookies[k] = v.strip()
       else:
         cookies[cookie] = None
