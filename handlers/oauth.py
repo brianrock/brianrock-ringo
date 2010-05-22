@@ -98,7 +98,6 @@ class OAuthCallbackHandler(webapp.RequestHandler):
   @property
   def client(self):
     if not hasattr(self, '_client') or not self._client:
-      logging.info('building client...')
       self._client = buzz.Client()
       self._client.build_oauth_consumer(
         OAUTH_CONSUMER_KEY, OAUTH_CONSUMER_SECRET
@@ -112,38 +111,49 @@ class OAuthCallbackHandler(webapp.RequestHandler):
       if cookies.get('access_token'):
         self.redirect('/play/')
         return
-      elif self.request.get('oauth_verifier'):
-        verifier = self.request.get('oauth_verifier')
-        request_token_key = self.request.get('oauth_token')
-        db_request_token = models.tokens.RequestToken.from_key(
-          cookies.get('request_token')
-        )
-        if db_request_token:
-          # There should only ever be one request token
-          oauth_request_token = db_request_token.token
-          # Give the Buzz client our request token, then upgrade it to
-          # an access token
-          self.client.oauth_request_token = oauth_request_token
-          oauth_access_token = self.client.fetch_oauth_access_token(verifier)
-
-          # TODO: Create a player object
-
-          # Save the access token, then delete the request token
-          db_access_token = models.tokens.AccessToken(
-            oauth_key=oauth_access_token.key,
-            oauth_secret=oauth_access_token.secret
-          )
-          db_access_token.put()
-          db_request_token.delete()
-          web.helper.set_access_token_cookie(self, oauth_access_token)
-          self.redirect('/play/')
+    if self.request.get('oauth_verifier'):
+      verifier = self.request.get('oauth_verifier')
+      request_token_key = self.request.get('oauth_token')
+      if not request_token_key:
+        if cookies and cookies.get('request_token'):
+          request_token_key = cookies.get('request_token')
         else:
-          # Epic fail. Unknown request token.
-          web.helper.clear_oauth_token_cookies(self)
-          self.redirect('/oauth/init/')
-          return
+          raise ValueError('Could not obtain request token key.')
+      logging.info('Request Token: %s' % request_token_key)
+      db_request_token = models.tokens.RequestToken.from_key(
+        request_token_key
+      )
+      if db_request_token:
+        # There should only ever be one request token
+        oauth_request_token = db_request_token.token
+        # Give the Buzz client our request token, then upgrade it to
+        # an access token
+        self.client.oauth_request_token = oauth_request_token
+        oauth_access_token = self.client.fetch_oauth_access_token(verifier)
+        logging.info('Access Token: %s' % oauth_access_token.key)
+
+        # TODO: Create a player object
+
+        # Save the access token, then delete the request token
+        db_access_token = models.tokens.AccessToken(
+          oauth_key=oauth_access_token.key,
+          oauth_secret=oauth_access_token.secret
+        )
+        db_access_token.put()
+        db_request_token.delete()
+        web.helper.set_access_token_cookie(self, oauth_access_token)
+        logging.info(str(self.response))
+        logging.info(str(self.response.headers))
+        self.redirect('/play/')
+        return
       else:
-        # Epic fail. Page visited without parameters.
+        # Epic fail. Unknown request token.
+        logging.info('Unknown request token.  Reinitializing.')
         web.helper.clear_oauth_token_cookies(self)
         self.redirect('/oauth/init/')
         return
+    else:
+      # Epic fail. Page visited without parameters.
+      web.helper.clear_oauth_token_cookies(self)
+      self.redirect('/oauth/init/')
+      return

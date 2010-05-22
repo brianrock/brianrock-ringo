@@ -1,19 +1,23 @@
 import logging
+import time
+
+def cookie_expiration_date():
+  # Expires in one month
+  expiration = time.gmtime(time.time() + 2628000)
+  return time.strftime("%a, %d %b %Y %H:%M:%S GMT", expiration)
 
 def set_request_token_cookie(handler, oauth_request_token):
-  # TODO: Currently expires at the end of Google I/O
   handler.response.headers._headers.append((
     'Set-Cookie',
     'request_token=' + oauth_request_token.key + '; ' + \
-    'path=/; expires=Sat, 22-May-2010 00:00:00 GMT'
+    'path=/; expires=' + cookie_expiration_date()
   ))
   
 def set_access_token_cookie(handler, oauth_access_token):
-  # TODO: Currently expires at the end of Google I/O
   handler.response.headers._headers.append((
     'Set-Cookie',
     'access_token=' + oauth_access_token.key + '; ' + \
-    'path=/; expires=Sat, 22-May-2010 00:00:00 GMT'
+    'path=/; expires=' + cookie_expiration_date()
   ))
   handler.response.headers._headers.append((
     'Set-Cookie',
