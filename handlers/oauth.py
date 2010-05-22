@@ -142,8 +142,6 @@ class OAuthCallbackHandler(webapp.RequestHandler):
         db_access_token.put()
         db_request_token.delete()
         web.helper.set_access_token_cookie(self, oauth_access_token)
-        logging.info(str(self.response))
-        logging.info(str(self.response.headers))
         self.redirect('/play/')
         return
       else:
