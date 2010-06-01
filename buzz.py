@@ -43,10 +43,6 @@ OAUTH_ACCESS_TOKEN_URI = \
   'https://www.google.com/accounts/OAuthGetAccessToken'
 OAUTH_AUTHORIZATION_URI = \
   'https://www.google.com/buzz/api/auth/OAuthAuthorizeToken'
-# OAUTH_AUTHORIZATION_URI = \
-#   'https://www.google.com/buzz/api/auth/OAuthAuthorizeToken'
-# OAUTH_AUTHORIZATION_URI = \
-#   'https://www.google.com/accounts/OAuthAuthorizeToken'
 
 class RetrieveError(Exception):
   """
@@ -250,9 +246,8 @@ class Client:
       raise ValueError("Client is missing consumer.")
     auth_uri = OAUTH_AUTHORIZATION_URI + \
       "?oauth_token=" + token.key + \
-      "&domain=" + self.oauth_consumer.key
-    for scope in self.oauth_scopes:
-      auth_uri += "&scope=" + scope
+      "&domain=" + self.oauth_consumer.key + \
+      "&scope=" + '%20'.join(self.oauth_scopes)
     return auth_uri
 
   def fetch_oauth_access_token(self, verifier=None, token=None):
@@ -659,6 +654,7 @@ class Post:
     self.object = None
     self.type=None
     self.place_name=None
+    self.visibility=None
     
     # Construct the post piece-wise.
     self.content = content
@@ -718,6 +714,11 @@ class Post:
           self.geocode = _parse_geocode(json['geocode'])
         if json.get('placeName'):
           self.place_name = json['placeName']
+        if json.get('visibility'):
+          self.visibility = json['visibility']
+          if isinstance(self.visibility, dict) and \
+              self.visibility.get('entries'):
+            self.visibility = self.visibility.get('entries')
         # TODO: handle timestamps
       except KeyError, e:
         raise JSONParseError(
@@ -726,8 +727,20 @@ class Post:
         )
 
   def __repr__(self):
-    return "<Post[%s]>" % self.id
-    
+    if not self.public:
+      return "<Post[%s] (private)>" % self.id
+    else:
+      return "<Post[%s]>" % self.id
+  
+  @property
+  def public(self):
+    if self.visibility:
+      public_visibilities = [entry for entry in self.visibility if entry.get('id') == 'tag:google.com,2010:buzz-group:@me:@public']
+      return not not public_visibilities
+    else:
+      # If there's no visibility attribute it's public
+      return True
+  
   @property
   def _json_output(self):
     output = {
